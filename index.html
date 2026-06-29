@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMF Révision - Plateforme Interactive</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function MMFLearningPlatform() {
+            const [userRole, setUserRole] = useState(null);
+            const [formatorInputCode, setFormatorInputCode] = useState('');
+            const [learnerData, setLearnerData] = useState(null);
+            const [learners, setLearners] = useState([]);
+            const [currentClass, setCurrentClass] = useState('1');
+            const [currentModule, setCurrentModule] = useState(0);
+            const [quizAnswers, setQuizAnswers] = useState({});
+            const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+            const classes = {
+                '1': {
+                    name: 'Classe 1 - Production d\'Énergie',
+                    modules: [
+                        { id: 1, name: 'Santé, Sécurité & Environnement', description: 'Module de base' },
+                        { id: 2, name: 'Mise en Service', description: 'Procédures d\'installation' },
+                        { id: 3, name: 'Contrôle des Paramètres', description: 'Monitoring' },
+                        { id: 4, name: 'Mise Hors Service', description: 'Arrêt sécurisé' },
+                        { id: 5, name: 'Gestion Maintenance', description: 'Entretien préventif' }
+                    ]
+                },
+                '2': {
+                    name: 'Classe 2 - Production Avancée',
+                    modules: [
+                        { id: 1, name: 'Module 1', description: 'À remplir' },
+                        { id: 2, name: 'Module 2', description: 'À remplir' },
+                        { id: 3, name: 'Module 3', description: 'À remplir' }
+                    ]
+                },
+                '3': {
+                    name: 'Classe 3 - Production Intermédiaire',
+                    modules: [
+                        { id: 1, name: 'Module 1', description: 'À remplir' },
+                        { id: 2, name: 'Module 2', description: 'À remplir' },
+                        { id: 3, name: 'Module 3', description: 'À remplir' }
+                    ]
+                },
+                '4': {
+                    name: 'Classe 4 - Production Base',
+                    modules: [
+                        { id: 1, name: 'Santé, Sécurité & Environnement', description: 'Fondamentaux' },
+                        { id: 2, name: 'Mise en Service', description: 'Installation' },
+                        { id: 3, name: 'Contrôle', description: 'Suivi' },
+                        { id: 4, name: 'Arrêt', description: 'Sécurité' },
+                        { id: 5, name: 'Maintenance', description: 'Entretien' }
+                    ]
+                },
+                'A': {
+                    name: 'Classe A - Appareils Frigorifiques',
+                    modules: [
+                        { id: 1, name: 'Santé & Sécurité Froid', description: 'Halocarbures' },
+                        { id: 2, name: 'Mise en Service Froid', description: 'Installation frigorifique' },
+                        { id: 3, name: 'Contrôle Froid', description: 'Monitoring frigorifique' },
+                        { id: 4, name: 'Arrêt Froid', description: 'Récupération réfrigérant' },
+                        { id: 5, name: 'Maintenance Froid', description: 'Entretien frigorifique' }
+                    ]
+                },
+                'B': {
+                    name: 'Classe B - Frigorifiques Simplifié',
+                    modules: [
+                        { id: 1, name: 'Module 1', description: 'À remplir' },
+                        { id: 2, name: 'Module 2', description: 'À remplir' },
+                        { id: 3, name: 'Module 3', description: 'À remplir' }
+                    ]
+                }
+            };
+
+            const quizTemplate = Array(20).fill(null).map((_, i) => ({
+                id: i + 1,
+                question: `Question ${i + 1} - À remplir par le formateur`,
+                options: ['Option A', 'Option B', 'Option C', 'Option D'],
+                correctAnswer: 0
+            }));
+
+            const generateLearnerId = () => 'APP-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            const initializeLearner = () => {
+                const newLearner = {
+                    id: generateLearnerId(),
+                    createdAt: new Date().toLocaleString(),
+                    classProgress: {}
+                };
+                Object.keys(classes).forEach(cls => {
+                    newLearner.classProgress[cls] = { modules: {} };
+                    classes[cls].modules.forEach(mod => {
+                        newLearner.classProgress[cls].modules[mod.id] = {
+                            completed: false,
+                            quizScore: 0
+                        };
+                    });
+                });
+                setLearnerData(newLearner);
+                setCurrentClass('1');
+                setCurrentModule(0);
+            };
+
+            const submitQuiz = () => {
+                let score = 0;
+                quizTemplate.forEach((q, idx) => {
+                    if (quizAnswers[idx] === q.correctAnswer) score++;
+                });
+                const percentage = (score / quizTemplate.length) * 100;
+                
+                const updatedLearner = { ...learnerData };
+                updatedLearner.classProgress[currentClass].modules[
+                    classes[currentClass].modules[currentModule].id
+                ] = { completed: true, quizScore: percentage };
+                setLearnerData(updatedLearner);
+                setQuizSubmitted(true);
+            };
+
+            const resetQuiz = () => {
+                setQuizAnswers({});
+                setQuizSubmitted(false);
+            };
+
+            const addLearnerToFormator = () => {
+                if (learnerData) {
+                    setLearners([...learners, { ...learnerData, addedAt: new Date().toLocaleString() }]);
+                    setLearnerData(null);
+                    setUserRole(null);
+                }
+            };
+
+            const removeLearner = (id) => {
+                setLearners(learners.filter(l => l.id !== id));
+            };
+
+            const exportToExcel = () => {
+                let csvContent = 'ID,Date Création,Classe,Module,Score,Complété\n';
+                learners.forEach(learner => {
+                    Object.entries(learner.classProgress).forEach(([cls, data]) => {
+                        Object.entries(data.modules).forEach(([modId, modData]) => {
+                            const moduleName = classes[cls].modules.find(m => m.id == modId)?.name || '';
+                            csvContent += `${learner.id},${learner.createdAt},${cls},${moduleName},${modData.quizScore || 0}%,${modData.completed ? 'Oui' : 'Non'}\n`;
+                        });
+                    });
+                });
+                const link = document.createElement('a');
+                link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+                link.download = `apprenants_mmf_${new Date().getTime()}.csv`;
+                link.click();
+            };
+
+            if (!userRole) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+                            <h1 className="text-3xl font-bold text-blue-900 mb-2">MMF Révision</h1>
+                            <p className="text-gray-600 mb-6">Plateforme de Suivi Interactif</p>
+                            
+                            <div className="space-y-4">
+                                <button
+                                    onClick={() => {
+                                        setUserRole('learner');
+                                        initializeLearner();
+                                    }}
+                                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition"
+                                >
+                                    Mode Apprenant
+                                </button>
+
+                                <div className="border-t my-4"></div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Code Formateur</label>
+                                    <input
+                                        type="password"
+                                        value={formatorInputCode}
+                                        onChange={(e) => setFormatorInputCode(e.target.value)}
+                                        placeholder="Entrez le code"
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-3"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (formatorInputCode === 'SAE2024') {
+                                                setUserRole('formator');
+                                            } else {
+                                                alert('Code invalide');
+                                            }
+                                        }}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+                                    >
+                                        Accès Formateur
+                                    </button>
+                                    <p className="text-xs text-gray-500 mt-2">Code: SAE2024</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (userRole === 'learner' && learnerData) {
+                const moduleActuel = classes[currentClass].modules[currentModule];
+                const moduleData = learnerData.classProgress[currentClass].modules[moduleActuel.id];
+                
+                return (
+                    <div className="min-h-screen bg-gray-100">
+                        <div className="bg-blue-900 text-white p-4">
+                            <div className="max-w-6xl mx-auto flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-2xl font-bold">MMF Révision</h1>
+                                    <p className="text-blue-200">ID: {learnerData.id}</p>
+                                </div>
+                                <button
+                                    onClick={addLearnerToFormator}
+                                    className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-semibold"
+                                >
+                                    Terminer Parcours
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+                            <div className="lg:col-span-1">
+                                <div className="bg-white rounded-lg shadow p-4">
+                                    <h3 className="font-bold text-gray-900 mb-3">Classes</h3>
+                                    <div className="space-y-2">
+                                        {Object.entries(classes).map(([classKey, classData]) => (
+                                            <button
+                                                key={classKey}
+                                                onClick={() => {
+                                                    setCurrentClass(classKey);
+                                                    setCurrentModule(0);
+                                                    setQuizSubmitted(false);
+                                                    setQuizAnswers({});
+                                                }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg transition ${
+                                                    currentClass === classKey
+                                                        ? 'bg-blue-500 text-white'
+                                                        : 'bg-gray-100 hover:bg-gray-200'
+                                                }`}
+                                            >
+                                                <div className="text-sm font-semibold">{classKey}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow p-4 mt-4">
+                                    <h3 className="font-bold text-gray-900 mb-3">Modules</h3>
+                                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                                        {classes[currentClass].modules.map((mod, idx) => {
+                                            const modData = learnerData.classProgress[currentClass].modules[mod.id];
+                                            return (
+                                                <button
+                                                    key={mod.id}
+                                                    onClick={() => {
+                                                        setCurrentModule(idx);
+                                                        setQuizSubmitted(false);
+                                                        setQuizAnswers({});
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg transition text-sm ${
+                                                        currentModule === idx
+                                                            ? 'bg-blue-500 text-white'
+                                                            : modData.completed
+                                                            ? 'bg-green-100 border-l-4 border-green-500'
+                                                            : 'bg-gray-100 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    <div className="font-semibold">{mod.name}</div>
+                                                    {modData.completed && (
+                                                        <div className="text-xs">Score: {modData.quizScore}%</div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-3">
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h2 className="text-2xl font-bold text-gray-900">{classes[currentClass].name}</h2>
+                                    <h3 className="text-xl text-blue-600 mt-2">{moduleActuel.name}</h3>
+                                    <p className="text-gray-600 mt-2">Module {currentModule + 1}/{classes[currentClass].modules.length}</p>
+
+                                    <div className="bg-blue-50 p-4 rounded-lg my-6">
+                                        <p className="text-gray-700">{moduleActuel.description}</p>
+                                        <div className="mt-4 p-3 bg-white rounded border-l-4 border-blue-500 text-sm text-gray-600">
+                                            <strong>Vidéo/Images:</strong> À ajouter par le formateur
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t pt-6">
+                                        <h4 className="text-lg font-bold text-gray-900 mb-4">Quiz du Module (20 questions)</h4>
+                                        
+                                        {quizSubmitted ? (
+                                            <div className="bg-green-50 p-6 rounded-lg text-center">
+                                                <div className="text-5xl font-bold text-green-600 mb-4">{moduleData.quizScore.toFixed(1)}%</div>
+                                                <p className="text-gray-700 mb-4">Module complété!</p>
+                                                <button
+                                                    onClick={resetQuiz}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold"
+                                                >
+                                                    Refaire le Quiz
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4 max-h-96 overflow-y-auto">
+                                                {quizTemplate.map((q, idx) => (
+                                                    <div key={idx} className="border rounded-lg p-4">
+                                                        <p className="font-semibold text-gray-900 mb-3">{q.question}</p>
+                                                        <div className="space-y-2">
+                                                            {q.options.map((opt, optIdx) => (
+                                                                <label key={optIdx} className="flex items-center cursor-pointer">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`q-${idx}`}
+                                                                        checked={quizAnswers[idx] === optIdx}
+                                                                        onChange={() => {
+                                                                            setQuizAnswers({ ...quizAnswers, [idx]: optIdx });
+                                                                        }}
+                                                                        className="mr-3"
+                                                                    />
+                                                                    <span className="text-gray-700">{opt}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={submitQuiz}
+                                                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-bold mt-4"
+                                                >
+                                                    Soumettre le Quiz
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (userRole === 'formator') {
+                return (
+                    <div className="min-h-screen bg-gray-100">
+                        <div className="bg-blue-900 text-white p-4">
+                            <div className="max-w-7xl mx-auto flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-3xl font-bold">Tableau de Bord Formateur</h1>
+                                    <p className="text-blue-200">Suivi des Apprenants MMF</p>
+                                </div>
+                                <div className="space-x-2">
+                                    <button
+                                        onClick={exportToExcel}
+                                        className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-semibold inline-flex items-center gap-2"
+                                    >
+                                        📥 Export Excel
+                                    </button>
+                                    <button
+                                        onClick={() => setUserRole(null)}
+                                        className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-semibold"
+                                    >
+                                        Déconnexion
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h3 className="text-gray-600 text-sm font-semibold">Apprenants Actifs</h3>
+                                    <p className="text-4xl font-bold text-blue-600 mt-2">{learners.length}</p>
+                                </div>
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h3 className="text-gray-600 text-sm font-semibold">Modules Complétés</h3>
+                                    <p className="text-4xl font-bold text-green-600 mt-2">
+                                        {learners.reduce((sum, l) => 
+                                            sum + Object.values(l.classProgress).reduce((s, c) => 
+                                                s + Object.values(c.modules).filter(m => m.completed).length, 0), 0)
+                                        }
+                                    </p>
+                                </div>
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h3 className="text-gray-600 text-sm font-semibold">Score Moyen</h3>
+                                    <p className="text-4xl font-bold text-orange-600 mt-2">
+                                        {learners.length > 0 ? (
+                                            (learners.reduce((sum, l) => {
+                                                const total = Object.values(l.classProgress).reduce((s, c) => 
+                                                    s + Object.values(c.modules).length, 0);
+                                                const scores = Object.values(l.classProgress).reduce((s, c) => 
+                                                    s + Object.values(c.modules).reduce((ss, m) => ss + (m.quizScore || 0), 0), 0);
+                                                return sum + (scores / (total || 1));
+                                            }, 0) / learners.length).toFixed(1)
+                                        ) : 0}%
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <div className="p-6 border-b">
+                                    <h2 className="text-xl font-bold text-gray-900">Apprenants en Cours</h2>
+                                </div>
+                                
+                                {learners.length === 0 ? (
+                                    <div className="p-6 text-center text-gray-500">Aucun apprenant pour le moment</div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
+                                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Progression</th>
+                                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Score</th>
+                                                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {learners.map((learner) => {
+                                                    const totalMods = Object.values(learner.classProgress).reduce((s, c) => 
+                                                        s + Object.values(c.modules).length, 0);
+                                                    const completedMods = Object.values(learner.classProgress).reduce((s, c) => 
+                                                        s + Object.values(c.modules).filter(m => m.completed).length, 0);
+                                                    const avgScore = Object.values(learner.classProgress).reduce((s, c) => 
+                                                        s + Object.values(c.modules).reduce((ss, m) => ss + (m.quizScore || 0), 0), 0) / 
+                                                        (totalMods || 1);
+
+                                                    return (
+                                                        <tr key={learner.id} className="border-b hover:bg-gray-50">
+                                                            <td className="px-6 py-4 text-sm font-mono text-gray-900">{learner.id}</td>
+                                                            <td className="px-6 py-4 text-sm text-gray-600">{learner.createdAt}</td>
+                                                            <td className="px-6 py-4 text-sm">
+                                                                <div className="w-32 bg-gray-200 rounded-full h-2">
+                                                                    <div
+                                                                        className="bg-blue-600 h-2 rounded-full"
+                                                                        style={{ width: `${(completedMods / (totalMods || 1)) * 100}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <span className="text-xs text-gray-600">{completedMods}/{totalMods}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm font-bold">{avgScore.toFixed(1)}%</td>
+                                                            <td className="px-6 py-4 text-sm">
+                                                                <button
+                                                                    onClick={() => removeLearner(learner.id)}
+                                                                    className="text-red-600 hover:text-red-800"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<MMFLearningPlatform />);
+    </script>
+</body>
+</html>
